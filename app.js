@@ -1,86 +1,174 @@
 let participantes = [];
 
-// Función para capitalizar nombres
+// Cache de elementos DOM
+const DOM = {
+    input: document.getElementById('amigo'),
+    lista: document.getElementById('listaAmigos'),
+    resultado: document.getElementById('resultado')
+};
+
+// Expresión regular para validación de nombres
+const nombreValido = /^[A-Za-zÁÉÍÓÚáéíóúñÑ\s']+$/;
+
+// Sanitización en tiempo real del input
+DOM.input.addEventListener('input', function (e) {
+    this.value = this.value
+        .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s']/g, '')  // Elimina caracteres inválidos
+        .replace(/\s{2,}/g, ' ')  // Reduce múltiples espacios a uno
+        .trimStart();  // Evita espacios al inicio
+});
+
 function capitalizarNombre(nombre) {
-    return nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+    const nombreLimpio = nombre.trim();
+
+    if (!nombreLimpio) throw new Error('Nombre vacío');
+    if (!nombreValido.test(nombreLimpio)) throw new Error('Caracteres inválidos');
+
+    // Normaliza espacios y capitaliza
+    return nombreLimpio
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function generarSugerencia(nombreBase) {
+    const nombresSimilares = participantes.filter(n =>
+        n.startsWith(nombreBase + ' ') || n === nombreBase
+    );
+
+    // Buscar números existentes
+    const numeros = nombresSimilares.map(n => {
+        const match = n.match(/ (\d+)$/);
+        return match ? parseInt(match[1]) : 0;
+    });
+
+    const maxNumero = Math.max(...numeros, 0);
+
+    // Sugerir siguiente número o inicial
+    if (maxNumero > 0) {
+        return `${nombreBase} ${maxNumero + 1}`;
+    }
+
+    // Si no hay números, sugerir inicial
+    const letras = nombresSimilares.map(n => {
+        const match = n.match(/ ([A-Z])$/);
+        return match ? match[1] : null;
+    }).filter(Boolean);
+
+    if (letras.length > 0) {
+        const ultimaLetra = letras[letras.length - 1].charCodeAt(0);
+        return `${nombreBase} ${String.fromCharCode(ultimaLetra + 1)}`;
+    }
+
+    return `${nombreBase} 2`;  // Primera sugerencia numérica
 }
 
 function agregarAmigo() {
-    const input = document.getElementById('amigo');
-    let nombre = input.value.trim();
+    try {
+        const nombre = capitalizarNombre(DOM.input.value);
 
-    if (!nombre) {
-        alert('Por favor ingresa un nombre válido');
-        return;
+        if (participantes.includes(nombre)) {
+            const nombreBase = nombre.split(' ')[0];
+            const sugerencia = generarSugerencia(nombreBase);
+
+            throw new Error(`Nombre duplicado. ¿Quizás: ${sugerencia}?`);
+        }
+
+        participantes.push(nombre);
+        actualizarLista();
+        DOM.input.value = '';
+
+        DOM.lista.style.display = 'block';
+        DOM.resultado.style.display = 'none';
+
+    } catch (error) {
+        const mensajes = {
+            'Nombre vacío': 'Por favor ingresa un nombre válido',
+            'Caracteres inválidos': 'Solo se permiten letras y espacios',
+            'Nombre duplicado': error.message  // Mensaje personalizado
+        };
+
+        alert(mensajes[error.message] || 'Error desconocido');
     }
+}
+function agregarAmigo() {
+    try {
+        const nombre = capitalizarNombre(DOM.input.value);
 
-    nombre = capitalizarNombre(nombre);
+        if (participantes.includes(nombre)) {
+            throw new Error('Nombre duplicado');
+        }
 
-    if (participantes.includes(nombre)) {
-        alert('¡Este nombre ya está en la lista!');
-        return;
+        participantes.push(nombre);
+        actualizarLista();
+        DOM.input.value = '';
+
+        // Actualizar visibilidad
+        DOM.lista.style.display = 'block';
+        DOM.resultado.style.display = 'none';
+
+    } catch (error) {
+        const mensajes = {
+            'Nombre vacío': 'Por favor ingresa un nombre válido',
+            'Caracteres inválidos': 'Solo se permiten letras y espacios',
+            'Nombre duplicado': '¡Este nombre ya existe!'
+        };
+        alert(mensajes[error.message] || 'Error desconocido');
     }
-
-    participantes.push(nombre);
-    actualizarLista();
-    input.value = '';
-
-    document.getElementById('listaAmigos').style.display = 'block';
-    document.getElementById('resultado').style.display = 'none';
 }
 
 function actualizarLista() {
     const lista = document.getElementById('listaAmigos');
-    lista.innerHTML = '';
-    participantes.forEach(nombre => {
-        const li = document.createElement('li');
-        li.textContent = nombre;
-        lista.appendChild(li);
-    });
+    lista.innerHTML = participantes.map(nombre => `<li>${nombre}</li>`).join('');
 }
 
 function sortearAmigo() {
-    if (participantes.length < 2) {
-        alert('¡Necesitas al menos 2 participantes!');
-        return;
+    try {
+        if (participantes.length < 2) throw new Error('Mínimo 2 participantes');
+
+        const pares = generarParesAleatorios();
+        mostrarResultados(pares);
+
+        // Ocultar lista y mostrar resultados
+        DOM.lista.style.display = 'none';
+        DOM.resultado.style.display = 'block';
+
+    } catch (error) {
+        alert(error.message === 'Mínimo 2 participantes'
+            ? '¡Necesitas al menos 2 participantes!'
+            : 'Error al generar los pares');
     }
-
-    const pares = generarParesAleatorios();
-    mostrarResultados(pares);
-
-    document.getElementById('listaAmigos').style.display = 'none';
-    document.getElementById('resultado').style.display = 'block';
 }
 
-// Función faltante que genera los pares
+// Función mejorada para evitar autoemparejamientos
 function generarParesAleatorios() {
     const receivers = derangement(participantes);
-    const pares = {};
-
-    for (let i = 0; i < participantes.length; i++) {
-        pares[participantes[i]] = receivers[i];
-    }
-    return pares;
+    return Object.fromEntries(
+        participantes.map((nombre, i) => [nombre, receivers[i]])
+    );
 }
 
-// Función para evitar auto-emparejamientos
+// Derangement con límite de intentos
 function derangement(arr) {
     if (arr.length < 2) return arr;
+
     let deranged;
+    let intentos = 0;
+    const maxIntentos = 100;
 
     do {
         deranged = mezclarArray([...arr]);
-    } while (!esDerangementValido(arr, deranged));
+        intentos++;
+    } while (!esDerangementValido(arr, deranged) && intentos < maxIntentos);
+
+    if (intentos >= maxIntentos) throw new Error('No se pudo generar emparejamientos');
 
     return deranged;
 }
 
-// Función de validación
 function esDerangementValido(original, deranged) {
     return original.every((nombre, index) => nombre !== deranged[index]);
 }
 
-// Función para mezclar array
 function mezclarArray(array) {
     const copia = [...array];
     for (let i = copia.length - 1; i > 0; i--) {
@@ -92,18 +180,16 @@ function mezclarArray(array) {
 
 function mostrarResultados(pares) {
     const resultado = document.getElementById('resultado');
-    resultado.innerHTML = '';
-
-    Object.entries(pares).forEach(([dador, receptor]) => {
-        const li = document.createElement('li');
-        li.textContent = `${dador} ➔ ${receptor}`;
-        li.classList.add('result-item');
-        resultado.appendChild(li);
-    });
+    resultado.innerHTML = Object.entries(pares)
+        .map(([dador, receptor]) => `
+            <li class="result-item">
+                ${dador} ➔ ${receptor}
+            </li>
+        `).join('');
 }
 
-// Event listener para Enter
-document.getElementById('amigo').addEventListener('keypress', function (e) {
+// Event listener mejorado para Enter
+DOM.input.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         agregarAmigo();
