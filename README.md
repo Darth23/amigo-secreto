@@ -2,6 +2,7 @@
 
 ## Aquí se muestra la manera de ingresar (puedes agregar con mayusculas o minusculas).
 ![image](https://github.com/user-attachments/assets/9e18ddbc-187b-45a0-80c3-9dc0eaf3c46d)
+(Los nombres repetidos no se admiten, a menos que coloques un apellido)
 
 Al terminar de ingresar los nombres, solo hay que darles a "Sortear amigos", se hace la elección al azar.
 ![image](https://github.com/user-attachments/assets/df6b1812-a64c-4320-9b7d-41ce373d345b)
