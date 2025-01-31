@@ -4,8 +4,14 @@ let participantes = [];
 const DOM = {
     input: document.getElementById('amigo'),
     lista: document.getElementById('listaAmigos'),
-    resultado: document.getElementById('resultado')
+    resultado: document.getElementById('resultado'),
+    sortearBtn: document.getElementById('sortear'), // Nuevo botón para sortear
+    eliminarBtn: document.createElement('button') // Botón para eliminar
 };
+
+DOM.eliminarBtn.textContent = 'Eliminar';
+DOM.eliminarBtn.classList.add('eliminar-btn');
+DOM.eliminarBtn.addEventListener('click', eliminarAmigo);
 
 // Expresión regular para validación de nombres
 const nombreValido = /^[A-Za-zÁÉÍÓÚáéíóúñÑ\s']+$/;
@@ -84,41 +90,29 @@ function agregarAmigo() {
         const mensajes = {
             'Nombre vacío': 'Por favor ingresa un nombre válido',
             'Caracteres inválidos': 'Solo se permiten letras y espacios',
-            'Nombre duplicado': error.message  // Mensaje personalizado
+            'Nombre duplicado': error.message // Mensaje personalizado
         };
 
-        alert(mensajes[error.message] || 'Error desconocido');
-    }
-}
-function agregarAmigo() {
-    try {
-        const nombre = capitalizarNombre(DOM.input.value);
-
-        if (participantes.includes(nombre)) {
-            throw new Error('Nombre duplicado');
-        }
-
-        participantes.push(nombre);
-        actualizarLista();
-        DOM.input.value = '';
-
-        // Actualizar visibilidad
-        DOM.lista.style.display = 'block';
-        DOM.resultado.style.display = 'none';
-
-    } catch (error) {
-        const mensajes = {
-            'Nombre vacío': 'Por favor ingresa un nombre válido',
-            'Caracteres inválidos': 'Solo se permiten letras y espacios',
-            'Nombre duplicado': '¡Este nombre ya existe!'
-        };
         alert(mensajes[error.message] || 'Error desconocido');
     }
 }
 
 function actualizarLista() {
     const lista = document.getElementById('listaAmigos');
-    lista.innerHTML = participantes.map(nombre => `<li>${nombre}</li>`).join('');
+    lista.innerHTML = participantes.map(nombre => `<li>${nombre} ${DOM.eliminarBtn.outerHTML}</li>`).join('');
+
+    // Agregar event listeners a los botones de eliminar
+    const botonesEliminar = lista.querySelectorAll('.eliminar-btn');
+    botonesEliminar.forEach(boton => {
+        boton.addEventListener('click', eliminarAmigo);
+    });
+}
+
+function eliminarAmigo(event) {
+    const li = event.target.closest('li');
+    const nombre = li.textContent.replace('x', '').trim();
+    participantes = participantes.filter(p => p !== nombre);
+    actualizarLista();
 }
 
 function sortearAmigo() {
@@ -128,7 +122,6 @@ function sortearAmigo() {
         const pares = generarParesAleatorios();
         mostrarResultados(pares);
 
-        // Ocultar lista y mostrar resultados
         DOM.lista.style.display = 'none';
         DOM.resultado.style.display = 'block';
 
@@ -136,6 +129,41 @@ function sortearAmigo() {
         alert(error.message === 'Mínimo 2 participantes'
             ? '¡Necesitas al menos 2 participantes!'
             : 'Error al generar los pares');
+    }
+}
+function sortearTodos() {
+    try {
+        if (participantes.length < 2) throw new Error('Mínimo 2 participantes');
+
+        const pares = generarParesAleatorios();
+        mostrarResultados(pares);
+
+        DOM.lista.style.display = 'none';
+        DOM.resultado.style.display = 'block';
+
+    } catch (error) {
+        alert(error.message === 'Mínimo 2 participantes'
+            ? '¡Necesitas al menos 2 participantes!'
+            : 'Error al generar los pares');
+    }
+}
+
+function sortearUno() {
+    try {
+        if (participantes.length < 1) throw new Error('Mínimo 1 participante');
+
+        const ganador = participantes[Math.floor(Math.random() * participantes.length)];
+        mostrarResultados({
+            '¡El ganador es!': ganador
+        }); // Mostrar ganador único
+
+        DOM.lista.style.display = 'none';
+        DOM.resultado.style.display = 'block';
+
+    } catch (error) {
+        alert(error.message === 'Mínimo 1 participante'
+            ? '¡Necesitas al menos 1 participante!'
+            : 'Error al elegir ganador');
     }
 }
 
@@ -153,7 +181,7 @@ function derangement(arr) {
 
     let deranged;
     let intentos = 0;
-    const maxIntentos = 100;
+    const maxIntentos = 5;
 
     do {
         deranged = mezclarArray([...arr]);
