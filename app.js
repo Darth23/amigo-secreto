@@ -1,197 +1,144 @@
-let participantes = [];
+// Módulo de Estado
+const State = (() => {
+    let participantes = [];
+    let modoClasico = true;
+    return { participantes, modoClasico };
+})();
 
-// Cache de elementos DOM
-const DOM = {
-    input: document.getElementById('amigo'),
-    lista: document.getElementById('listaAmigos'),
-    resultado: document.getElementById('resultado')
+// Módulo de Utilidades
+const Utils = {
+    DOM: {
+        input: document.getElementById('amigo'),
+        lista: document.getElementById('listaAmigos'),
+        resultado: document.getElementById('resultado'),
+        toggleModo: document.getElementById('toggleModo')
+    },
+
+    validaciones: {
+        nombreValido: /^[A-Za-zÁÉÍÓÚáéíóúñÑ\s']+$/,
+        capitalizar: nombre => nombre.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase()),
+
+        sanitizarInput: function (e) {
+            e.target.value = e.target.value
+                .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s']/g, '')
+                .replace(/\s{2,}/g, ' ')
+                .trimStart();
+        }
+    }
 };
 
-// Expresión regular para validación de nombres
-const nombreValido = /^[A-Za-zÁÉÍÓÚáéíóúñÑ\s']+$/;
+// Módulo de Operaciones
+const App = {
+    init() {
+        Utils.DOM.input.addEventListener('input', Utils.validaciones.sanitizarInput);
+        Utils.DOM.input.addEventListener('keypress', e => e.key === 'Enter' && this.agregarAmigo());
+    },
 
-// Sanitización en tiempo real del input
-DOM.input.addEventListener('input', function (e) {
-    this.value = this.value
-        .replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s']/g, '')  // Elimina caracteres inválidos
-        .replace(/\s{2,}/g, ' ')  // Reduce múltiples espacios a uno
-        .trimStart();  // Evita espacios al inicio
-});
+    agregarAmigo() {
+        try {
+            const nombre = Utils.validaciones.capitalizar(Utils.DOM.input.value.trim());
 
-function capitalizarNombre(nombre) {
-    const nombreLimpio = nombre.trim();
+            if (!nombre) throw new Error('Nombre vacío');
+            if (!Utils.validaciones.nombreValido.test(nombre)) throw new Error('Caracteres inválidos');
+            if (State.participantes.includes(nombre)) throw this.generarErrorDuplicado(nombre);
 
-    if (!nombreLimpio) throw new Error('Nombre vacío');
-    if (!nombreValido.test(nombreLimpio)) throw new Error('Caracteres inválidos');
+            State.participantes.push(nombre);
+            this.actualizarUI();
+            Utils.DOM.input.value = '';
 
-    // Normaliza espacios y capitaliza
-    return nombreLimpio
-        .replace(/\s{2,}/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function generarSugerencia(nombreBase) {
-    const nombresSimilares = participantes.filter(n =>
-        n.startsWith(nombreBase + ' ') || n === nombreBase
-    );
-
-    // Buscar números existentes
-    const numeros = nombresSimilares.map(n => {
-        const match = n.match(/ (\d+)$/);
-        return match ? parseInt(match[1]) : 0;
-    });
-
-    const maxNumero = Math.max(...numeros, 0);
-
-    // Sugerir siguiente número o inicial
-    if (maxNumero > 0) {
-        return `${nombreBase} ${maxNumero + 1}`;
-    }
-
-    // Si no hay números, sugerir inicial
-    const letras = nombresSimilares.map(n => {
-        const match = n.match(/ ([A-Z])$/);
-        return match ? match[1] : null;
-    }).filter(Boolean);
-
-    if (letras.length > 0) {
-        const ultimaLetra = letras[letras.length - 1].charCodeAt(0);
-        return `${nombreBase} ${String.fromCharCode(ultimaLetra + 1)}`;
-    }
-
-    return `${nombreBase} 2`;  // Primera sugerencia numérica
-}
-
-function agregarAmigo() {
-    try {
-        const nombre = capitalizarNombre(DOM.input.value);
-
-        if (participantes.includes(nombre)) {
-            const nombreBase = nombre.split(' ')[0];
-            const sugerencia = generarSugerencia(nombreBase);
-
-            throw new Error(`Nombre duplicado. ¿Quizás: ${sugerencia}?`);
+        } catch (error) {
+            this.mostrarError(error.message);
         }
+    },
 
-        participantes.push(nombre);
-        actualizarLista();
-        DOM.input.value = '';
+    generarErrorDuplicado(nombre) {
+        const base = nombre.split(' ')[0];
+        const sugerencia = this.generarSugerencia(base);
+        return new Error(`Nombre duplicado. ¿Quizás: ${sugerencia}?`);
+    },
 
-        DOM.lista.style.display = 'block';
-        DOM.resultado.style.display = 'none';
+    generarSugerencia(base) {
+        const similares = State.participantes.filter(n => n.startsWith(base));
+        const numeros = similares.map(n => (n.match(/(\d+)$/) || [0])[1]);
+        const maxNum = Math.max(...numeros);
 
-    } catch (error) {
-        const mensajes = {
-            'Nombre vacío': 'Por favor ingresa un nombre válido',
-            'Caracteres inválidos': 'Solo se permiten letras y espacios',
-            'Nombre duplicado': error.message  // Mensaje personalizado
-        };
+        return numeros.length ? `${base} ${maxNum + 1}` : `${base} 2`;
+    },
 
-        alert(mensajes[error.message] || 'Error desconocido');
-    }
-}
-function agregarAmigo() {
-    try {
-        const nombre = capitalizarNombre(DOM.input.value);
+    eliminarParticipante(index) {
+        State.participantes.splice(index, 1);
+        this.actualizarUI();
+        State.modoClasico && State.participantes.length < 2 && this.reiniciarSorteo();
+    },
 
-        if (participantes.includes(nombre)) {
-            throw new Error('Nombre duplicado');
+    sortearAmigo() {
+        try {
+            if (State.participantes.length < (State.modoClasico ? 2 : 1)) {
+                throw new Error(State.modoClasico ? 'Mínimo 2 participantes' : 'Agrega al menos 1 participante');
+            }
+
+            const resultado = State.modoClasico
+                ? this.generarPares()
+                : this.obtenerGanadorUnico();
+
+            this.mostrarResultado(resultado);
+
+        } catch (error) {
+            this.mostrarError(error.message);
         }
+    },
 
-        participantes.push(nombre);
-        actualizarLista();
-        DOM.input.value = '';
+    generarPares() {
+        const shuffled = [...State.participantes].sort(() => Math.random() - 0.5);
+        return State.participantes.reduce((acc, curr, i) => {
+            acc[curr] = shuffled[i] === curr ? shuffled[(i + 1) % shuffled.length] : shuffled[i];
+            return acc;
+        }, {});
+    },
 
-        // Actualizar visibilidad
-        DOM.lista.style.display = 'block';
-        DOM.resultado.style.display = 'none';
+    obtenerGanadorUnico() {
+        return State.participantes[Math.floor(Math.random() * State.participantes.length)];
+    },
 
-    } catch (error) {
-        const mensajes = {
-            'Nombre vacío': 'Por favor ingresa un nombre válido',
-            'Caracteres inválidos': 'Solo se permiten letras y espacios',
-            'Nombre duplicado': '¡Este nombre ya existe!'
-        };
-        alert(mensajes[error.message] || 'Error desconocido');
+    toggleModo() {
+        State.modoClasico = !State.modoClasico;
+        Utils.DOM.toggleModo.textContent = State.modoClasico ? 'Modo Clásico' : 'Modo Sorpresa';
+        Utils.DOM.toggleModo.classList.toggle('modo-alternativo', !State.modoClasico);
+        this.reiniciarSorteo();
+    },
+
+    actualizarUI() {
+        Utils.DOM.lista.innerHTML = State.participantes
+            .map((n, i) => `
+                <li class="list-item">
+                    ${n}
+                    <button class="button-delete" onclick="App.eliminarParticipante(${i})">×</button>
+                </li>`
+            ).join('');
+
+        Utils.DOM.lista.style.display = State.participantes.length ? 'block' : 'none';
+    },
+
+    mostrarResultado(data) {
+        Utils.DOM.resultado.innerHTML = State.modoClasico
+            ? Object.entries(data).map(([k, v]) => `<li>${k} ➔ ${v}</li>`).join('')
+            : `<div class="resultado-unico">${data}</div>`;
+
+        Utils.DOM.lista.style.display = 'none';
+        Utils.DOM.resultado.style.display = 'block';
+    },
+
+    reiniciarSorteo() {
+        Utils.DOM.resultado.style.display = 'none';
+        Utils.DOM.lista.style.display = 'block';
+    },
+
+    mostrarError(mensaje) {
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        setTimeout(() => errorDiv.style.display = 'none', 3000);
     }
-}
+};
 
-function actualizarLista() {
-    const lista = document.getElementById('listaAmigos');
-    lista.innerHTML = participantes.map(nombre => `<li>${nombre}</li>`).join('');
-}
-
-function sortearAmigo() {
-    try {
-        if (participantes.length < 2) throw new Error('Mínimo 2 participantes');
-
-        const pares = generarParesAleatorios();
-        mostrarResultados(pares);
-
-        // Ocultar lista y mostrar resultados
-        DOM.lista.style.display = 'none';
-        DOM.resultado.style.display = 'block';
-
-    } catch (error) {
-        alert(error.message === 'Mínimo 2 participantes'
-            ? '¡Necesitas al menos 2 participantes!'
-            : 'Error al generar los pares');
-    }
-}
-
-// Función mejorada para evitar autoemparejamientos
-function generarParesAleatorios() {
-    const receivers = derangement(participantes);
-    return Object.fromEntries(
-        participantes.map((nombre, i) => [nombre, receivers[i]])
-    );
-}
-
-// Derangement con límite de intentos
-function derangement(arr) {
-    if (arr.length < 2) return arr;
-
-    let deranged;
-    let intentos = 0;
-    const maxIntentos = 100;
-
-    do {
-        deranged = mezclarArray([...arr]);
-        intentos++;
-    } while (!esDerangementValido(arr, deranged) && intentos < maxIntentos);
-
-    if (intentos >= maxIntentos) throw new Error('No se pudo generar emparejamientos');
-
-    return deranged;
-}
-
-function esDerangementValido(original, deranged) {
-    return original.every((nombre, index) => nombre !== deranged[index]);
-}
-
-function mezclarArray(array) {
-    const copia = [...array];
-    for (let i = copia.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copia[i], copia[j]] = [copia[j], copia[i]];
-    }
-    return copia;
-}
-
-function mostrarResultados(pares) {
-    const resultado = document.getElementById('resultado');
-    resultado.innerHTML = Object.entries(pares)
-        .map(([dador, receptor]) => `
-            <li class="result-item">
-                ${dador} ➔ ${receptor}
-            </li>
-        `).join('');
-}
-
-// Event listener mejorado para Enter
-DOM.input.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        agregarAmigo();
-    }
-});
+App.init();
