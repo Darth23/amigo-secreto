@@ -99,3 +99,52 @@ button {
         border-radius: 1rem !important;
     }
 }
+
+/* Añadir estos estilos al CSS */
+#resultado {
+    width: 100%;
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: center;
+}
+
+/* Para el modo clásico (pares) */
+#resultado li {
+    background: var(--color-white);
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    list-style: none;
+}
+
+/* Para el modo sorpresa (nombre único) */
+.resultado-unico {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    padding: 2rem;
+    background: var(--color-white);
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    animation: aparecer 0.5s ease;
+}
+
+@keyframes aparecer {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Asegurar alineación vertical */
+.input-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
