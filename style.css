@@ -48,8 +48,20 @@ input {
     border-radius: 1rem 0 0 1rem;
 }
 
+.button-delete {
+    padding: 5px 4px;
+    border: 1px solid #000;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: "Inter", sans-serif;
+    background-color: var(--color-button);
+    transition: var(--transition);
+}
+
 button {
-    padding: 15px 30px;
+    padding: 14px 29px;
     border: 2px solid #000;
     border-radius: 1rem;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -147,4 +159,47 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+/* Estilos para el nuevo botón */
+.button-clear {
+    background: #dc3545;
+    color: white;
+    border-color: #bd2130;
+    margin-left: 0.5rem;
+    transition: filter 0.3s ease;
+}
+
+.button-clear:hover {
+    background: #ef0f25;
+    filter: brightness(1.1);
+}
+
+/* Ajustar disposición de botones */
+.input-wrapper {
+    gap: 0.3rem;
+
+    button {
+        flex-shrink: 0;
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 480px) {
+    .input-wrapper {
+        flex-wrap: wrap;
+
+        .button-add,
+        .button-clear {
+            flex: 1 1 45%;
+            margin-left: 0;
+        }
+
+        .button-clear {
+            order: 3;
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+    }
 }

@@ -19,23 +19,25 @@
 
         <section class="input-section">
             <h2>Agrega participantes</h2>
-            <div class="input-group">
-                <input type="text" id="amigo" placeholder="Nombre del participante">
-                <button onclick="App.agregarAmigo()">Añadir</button>
-            </div>
-
-            <ul id="listaAmigos"></ul>
-            <div id="errorMsg" class="error-message"></div>
-
-            <div class="action-buttons">
-                <button onclick="App.sortearAmigo()">
-                    <img src="assets/play_circle_outline.png" alt="Icono sortear">
-                    Sortear
+            <div class="input-wrapper">
+                <input type="text" id="amigo" class="input-name" placeholder="Escribe un nombre">
+                <button class="button-add" onclick="App.agregarAmigo()">Añadir</button>
+                <button class="button-clear" onclick="App.limpiarLista()" aria-label="Limpiar lista completa">
+                    🗑️ Limpiar
                 </button>
-                <button id="toggleModo" onclick="App.toggleModo()">Modo Clásico</button>
-            </div>
 
-            <ul id="resultado"></ul>
+                <ul id="listaAmigos"></ul>
+                <div id="errorMsg" class="error-message"></div>
+
+                <div class="action-buttons">
+                    <button onclick="App.sortearAmigo()">
+                        <img src="assets/play_circle_outline.png" alt="Icono sortear">
+                        Sortear
+                    </button>
+                    <button id="toggleModo" onclick="App.toggleModo()">Modo Clásico</button>
+                </div>
+
+                <ul id="resultado"></ul>
         </section>
     </main>
     <script src="app.js"></script>

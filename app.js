@@ -138,7 +138,30 @@ const App = {
         errorDiv.textContent = mensaje;
         errorDiv.style.display = 'block';
         setTimeout(() => errorDiv.style.display = 'none', 3000);
+    },
+
+    limpiarLista() {
+        if (State.participantes.length === 0) return;
+
+        if (confirm('¿Estás seguro de querer borrar toda la lista?\n¡Esta acción no se puede deshacer!')) {
+            State.participantes = [];
+            this.reiniciarSorteo();
+            this.actualizarUI();
+            Utils.DOM.input.focus();
+            this.mostrarNotificacion('Lista borrada exitosamente');
+        }
+    },
+    mostrarNotificacion(mensaje) {
+        const notificacion = document.createElement('div');
+        notificacion.className = 'notification';
+        notificacion.textContent = mensaje;
+        document.body.appendChild(notificacion);
+
+        setTimeout(() => {
+            notificacion.remove();
+        }, 2000);
     }
 };
 
+window.App = App;
 App.init();
